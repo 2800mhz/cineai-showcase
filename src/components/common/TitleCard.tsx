@@ -34,7 +34,8 @@ export const TitleCard = ({ title, showQuickActions = true, className = "" }: Ti
   return (
     <Link
       to={`/title/${title.id}`}
-      className={`group relative block rounded-2xl overflow-hidden bg-card hover-lift ${className}`}
+      className={`group/card relative block rounded-2xl overflow-hidden bg-card hover-lift ${className}`}
+
     >
       {/* Poster Image */}
       <div className="relative aspect-[2/3] overflow-hidden bg-muted">
@@ -92,7 +93,7 @@ export const TitleCard = ({ title, showQuickActions = true, className = "" }: Ti
 
         {/* Hover Overlay with Quick Actions */}
         {showQuickActions && (
-          <div className="absolute inset-0 bg-background/90 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+          <div className="absolute inset-0 bg-background/90 backdrop-blur-sm opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center">
             <div className="flex flex-col gap-2">
               <Button
                 size="sm"

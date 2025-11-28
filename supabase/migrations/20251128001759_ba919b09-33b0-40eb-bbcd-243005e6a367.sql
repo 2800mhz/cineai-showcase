@@ -1,8 +1,6 @@
 -- Move pg_trgm extension from public schema to extensions schema
 -- This follows Supabase best practices for extension management
 
--- amına camping
-
 -- Drop the extension from public schema if it exists there
 DROP EXTENSION IF EXISTS pg_trgm CASCADE;
 

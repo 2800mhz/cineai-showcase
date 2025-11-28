@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,28 +10,34 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TitleCard } from "@/components/common/TitleCard";
-import { mockTitles } from "@/data/mockData";
+import { TitleCardSkeleton } from "@/components/common/TitleCardSkeleton";
+import { useTitles } from "@/hooks/useTitles";
 
 export default function Movies() {
+  const { titles, loading } = useTitles();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("trending");
 
-  const movies = mockTitles
-    .filter((t) => t.type === "movie")
-    .filter((t) => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "rating":
-          return b.rating - a.rating;
-        case "views":
-          return b.viewCount - a.viewCount;
-        case "recent":
-          return new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime();
-        case "trending":
-        default:
-          return (b.trendingScore || 0) - (a.trendingScore || 0);
-      }
-    });
+  const movies = useMemo(
+    () =>
+      titles
+        .filter((t) => t.type === "movie")
+        .filter((t) => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+        .sort((a, b) => {
+          switch (sortBy) {
+            case "rating":
+              return b.rating - a.rating;
+            case "views":
+              return b.viewCount - a.viewCount;
+            case "recent":
+              return new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime();
+            case "trending":
+            default:
+              return (b.trendingScore || 0) - (a.trendingScore || 0);
+          }
+        }),
+    [titles, searchQuery, sortBy]
+  );
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
@@ -77,11 +83,19 @@ export default function Movies() {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-        {movies.map((movie) => (
-          <TitleCard key={movie.id} title={movie} />
-        ))}
-      </div>
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <TitleCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+          {movies.map((movie) => (
+            <TitleCard key={movie.id} title={movie} />
+          ))}
+        </div>
+      )}
 
       {/* Empty State */}
       {movies.length === 0 && (

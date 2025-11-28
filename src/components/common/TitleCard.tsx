@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
-import { Star, Eye, Heart, Play } from "lucide-react";
+import { Star, Eye, Heart, Play, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { Title } from "@/types";
@@ -50,12 +51,32 @@ export const TitleCard = ({ title, showQuickActions = true, className = "" }: Ti
           loading="lazy"
         />
 
-        {/* Trending Badge */}
-        {title.trendingScore && title.trendingScore > 80 && (
-          <Badge className="absolute top-3 left-3 bg-destructive/90 backdrop-blur-sm">
-            Trending
-          </Badge>
-        )}
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-2">
+          {title.trendingScore && title.trendingScore > 80 && (
+            <Badge className="bg-destructive/90 backdrop-blur-sm">
+              Trending
+            </Badge>
+          )}
+          
+          {/* AI Analyzed Badge */}
+          {title.aicinedbFilmId && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge className="bg-primary/90 backdrop-blur-sm gap-1 cursor-help">
+                    <Sparkles className="h-3 w-3" />
+                    AI Analyzed
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Analyzed by AIcineDB</p>
+                  {title.shotCount > 0 && <p className="text-xs">{title.shotCount} shots detected</p>}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
 
         {/* Watchlist Heart */}
         <button

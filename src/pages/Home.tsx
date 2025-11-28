@@ -1,31 +1,41 @@
-import { useState } from "react";
-import { Play, Plus, Star, ChevronRight } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Play, Plus, Star, ChevronRight, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TitleCarousel } from "@/components/common/TitleCarousel";
-import { mockTitles } from "@/data/mockData";
+import { TitleCardSkeleton } from "@/components/common/TitleCardSkeleton";
+import { useTitles } from "@/hooks/useTitles";
 import { toast } from "sonner";
 import heroImage from "@/assets/hero-quantum-echoes.jpg";
 
 export default function Home() {
+  const { titles, loading, error } = useTitles();
   const [featuredIndex, setFeaturedIndex] = useState(0);
-  const featuredTitle = mockTitles[featuredIndex];
 
-  // Filter titles for different sections
-  const trendingMovies = mockTitles
-    .filter((t) => t.type === "movie" && t.trendingScore)
-    .sort((a, b) => (b.trendingScore || 0) - (a.trendingScore || 0))
-    .slice(0, 10);
+  // Memoize filtered sections
+  const trendingMovies = useMemo(
+    () =>
+      titles
+        .filter((t) => t.type === "movie" && t.trendingScore)
+        .sort((a, b) => (b.trendingScore || 0) - (a.trendingScore || 0))
+        .slice(0, 10),
+    [titles]
+  );
 
-  const trendingSeries = mockTitles
-    .filter((t) => t.type === "series")
-    .slice(0, 10);
+  const trendingSeries = useMemo(
+    () => titles.filter((t) => t.type === "series").slice(0, 10),
+    [titles]
+  );
 
-  const topRated = mockTitles
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 10);
+  const topRated = useMemo(
+    () => titles.sort((a, b) => b.rating - a.rating).slice(0, 10),
+    [titles]
+  );
 
-  const upNext = mockTitles.slice(0, 4);
+  const upNext = useMemo(() => titles.slice(0, 4), [titles]);
+
+  const featuredTitle = upNext[featuredIndex] || titles[0];
 
   const handleWatchlist = () => {
     const user = localStorage.getItem("currentUser");
@@ -35,6 +45,47 @@ export default function Home() {
     }
     toast.success("Added to watchlist");
   };
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {error}. Displaying cached content.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  // Show loading skeletons
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-12 space-y-16">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <TitleCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state
+  if (titles.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-12 text-center">
+        <div className="max-w-md mx-auto space-y-4">
+          <h2 className="text-2xl font-bold">No Films Found</h2>
+          <p className="text-muted-foreground">
+            There are no films in the database yet. Check back later!
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">

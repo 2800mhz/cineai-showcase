@@ -1,14 +1,46 @@
 import { useParams, Link } from "react-router-dom";
-import { Play, Plus, Share2, Star, Eye, Calendar, Clock } from "lucide-react";
+import { Play, Plus, Share2, Star, Eye, Calendar, Clock, Film, Users, Layers, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockTitles, mockDirectors } from "@/data/mockData";
+import { Skeleton } from "@/components/ui/skeleton";
+import { mockDirectors } from "@/data/mockData";
+import { fetchTitleById } from "@/services/filmService";
 import { toast } from "sonner";
+import { useState, useEffect } from "react";
+import type { Title } from "@/types";
 
 export default function TitleDetail() {
   const { id } = useParams();
-  const title = mockTitles.find((t) => t.id === id);
+  const [title, setTitle] = useState<Title | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadTitle = async () => {
+      if (!id) return;
+      setLoading(true);
+      const data = await fetchTitleById(id);
+      setTitle(data);
+      setLoading(false);
+    };
+
+    loadTitle();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <div className="grid lg:grid-cols-[300px,1fr] gap-8">
+          <Skeleton className="w-full h-[450px] rounded-2xl" />
+          <div className="space-y-4">
+            <Skeleton className="h-12 w-3/4" />
+            <Skeleton className="h-6 w-full" />
+            <Skeleton className="h-20 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!title) {
     return (
@@ -177,6 +209,55 @@ export default function TitleDetail() {
                   </p>
                 </div>
               </div>
+
+              {/* AI Analysis Stats */}
+              {title.aicinedbFilmId && (
+                <div className="glass rounded-xl p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-semibold text-primary uppercase">
+                      AI Analysis
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {title.shotCount > 0 && (
+                      <div className="flex flex-col items-center p-3 rounded-lg bg-background/50">
+                        <Film className="h-5 w-5 text-muted-foreground mb-1" />
+                        <span className="text-xl font-bold">{title.shotCount}</span>
+                        <span className="text-xs text-muted-foreground">Shots</span>
+                      </div>
+                    )}
+                    {title.sceneCount > 0 && (
+                      <div className="flex flex-col items-center p-3 rounded-lg bg-background/50">
+                        <Layers className="h-5 w-5 text-muted-foreground mb-1" />
+                        <span className="text-xl font-bold">{title.sceneCount}</span>
+                        <span className="text-xs text-muted-foreground">Scenes</span>
+                      </div>
+                    )}
+                    {title.characterCount > 0 && (
+                      <div className="flex flex-col items-center p-3 rounded-lg bg-background/50">
+                        <Users className="h-5 w-5 text-muted-foreground mb-1" />
+                        <span className="text-xl font-bold">{title.characterCount}</span>
+                        <span className="text-xs text-muted-foreground">Characters</span>
+                      </div>
+                    )}
+                  </div>
+                  {title.styleFingerprint && (
+                    <div className="pt-2">
+                      <h4 className="text-xs font-semibold text-muted-foreground mb-2">
+                        Style Fingerprint
+                      </h4>
+                      <div className="flex flex-wrap gap-1">
+                        {title.styleFingerprint.split(',').slice(0, 6).map((tag, i) => (
+                          <Badge key={i} variant="outline" className="text-xs">
+                            {tag.trim()}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

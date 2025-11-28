@@ -30,6 +30,12 @@ export interface Title {
   seasons?: number;
   totalEpisodes?: number;
   episodes?: Episode[];
+  // AI Analysis fields
+  aicinedbFilmId?: number;
+  styleFingerprint?: string;
+  shotCount?: number;
+  characterCount?: number;
+  sceneCount?: number;
 }
 
 export interface Episode {

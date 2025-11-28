@@ -203,7 +203,9 @@ export type Database = {
           ai_model: string | null
           ai_parameters: Json | null
           ai_prompt: string | null
+          aicinedb_film_id: number | null
           backdrop_url: string | null
+          character_count: number | null
           created_at: string
           description: string | null
           dominant_color: string | null
@@ -219,10 +221,13 @@ export type Database = {
           rating_count: number | null
           rejection_reason: string | null
           release_date: string | null
+          scene_count: number | null
           search_vector: unknown
           seasons: number | null
+          shot_count: number | null
           slug: string | null
           status: string
+          style_fingerprint: string | null
           tags: string[] | null
           title: string
           total_episodes: number | null
@@ -240,7 +245,9 @@ export type Database = {
           ai_model?: string | null
           ai_parameters?: Json | null
           ai_prompt?: string | null
+          aicinedb_film_id?: number | null
           backdrop_url?: string | null
+          character_count?: number | null
           created_at?: string
           description?: string | null
           dominant_color?: string | null
@@ -256,10 +263,13 @@ export type Database = {
           rating_count?: number | null
           rejection_reason?: string | null
           release_date?: string | null
+          scene_count?: number | null
           search_vector?: unknown
           seasons?: number | null
+          shot_count?: number | null
           slug?: string | null
           status?: string
+          style_fingerprint?: string | null
           tags?: string[] | null
           title: string
           total_episodes?: number | null
@@ -277,7 +287,9 @@ export type Database = {
           ai_model?: string | null
           ai_parameters?: Json | null
           ai_prompt?: string | null
+          aicinedb_film_id?: number | null
           backdrop_url?: string | null
+          character_count?: number | null
           created_at?: string
           description?: string | null
           dominant_color?: string | null
@@ -293,10 +305,13 @@ export type Database = {
           rating_count?: number | null
           rejection_reason?: string | null
           release_date?: string | null
+          scene_count?: number | null
           search_vector?: unknown
           seasons?: number | null
+          shot_count?: number | null
           slug?: string | null
           status?: string
+          style_fingerprint?: string | null
           tags?: string[] | null
           title?: string
           total_episodes?: number | null

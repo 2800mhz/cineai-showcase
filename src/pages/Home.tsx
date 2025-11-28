@@ -90,7 +90,7 @@ export default function Home() {
   return (
     <div className="w-full">
       {/* Hero Section with Up Next Rail */}
-      <section className="relative w-full min-h-[70vh] lg:min-h-[80vh] overflow-hidden">
+      <section className="relative w-full min-h-[85vh] lg:min-h-[95vh] overflow-hidden">
         {/* Parallax Background */}
         <div className="absolute inset-0">
           <div
@@ -105,7 +105,7 @@ export default function Home() {
         </div>
 
         {/* Content */}
-        <div className="container relative z-10 mx-auto px-4 py-12 lg:py-20">
+        <div className="container relative z-10 mx-auto px-4 pt-24 pb-12 lg:pt-32 lg:pb-20">
           <div className="grid lg:grid-cols-[1fr,350px] gap-8 items-center">
             {/* Main Hero Content */}
             <div className="space-y-6 max-w-2xl">

@@ -1,31 +1,112 @@
-import { useParams, Link } from "react-router-dom";
-import { Play, Plus, Share2, Star, Eye, Calendar, Clock, Film, Users, Layers, Sparkles } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { Play, Plus, Share2, Star, Eye, Calendar, Clock, Film, Users, Layers, Sparkles, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { mockDirectors } from "@/data/mockData";
 import { fetchTitleById } from "@/services/filmService";
+import { RatingDialog } from "@/components/features/RatingDialog";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import type { Title } from "@/types";
 
 export default function TitleDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [title, setTitle] = useState<Title | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const [userRating, setUserRating] = useState<number | undefined>(undefined);
+  const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
 
   useEffect(() => {
-    const loadTitle = async () => {
-      if (!id) return;
-      setLoading(true);
-      const data = await fetchTitleById(id);
-      setTitle(data);
-      setLoading(false);
-    };
-
     loadTitle();
-  }, [id]);
+    if (user && id) {
+      checkWatchlist();
+      checkUserRating();
+    }
+  }, [id, user]);
+
+  const loadTitle = async () => {
+    if (!id) return;
+    setLoading(true);
+    const data = await fetchTitleById(id);
+    setTitle(data);
+    setLoading(false);
+  };
+
+  const checkWatchlist = async () => {
+    if (!user || !id) return;
+
+    const { data } = await supabase
+      .from("watchlist")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("title_id", id)
+      .maybeSingle();
+
+    setIsInWatchlist(!!data);
+  };
+
+  const checkUserRating = async () => {
+    if (!user || !id) return;
+
+    const { data } = await supabase
+      .from("ratings")
+      .select("rating")
+      .eq("user_id", user.id)
+      .eq("title_id", id)
+      .maybeSingle();
+
+    setUserRating(data?.rating);
+  };
+
+  const toggleWatchlist = async () => {
+    if (!user) {
+      navigate("/signin");
+      return;
+    }
+
+    if (isInWatchlist) {
+      const { error } = await supabase
+        .from("watchlist")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("title_id", id);
+
+      if (error) {
+        toast.error("Failed to remove from watchlist");
+        return;
+      }
+
+      toast.success("Removed from watchlist");
+      setIsInWatchlist(false);
+    } else {
+      const { error } = await supabase
+        .from("watchlist")
+        .insert({
+          user_id: user.id,
+          title_id: id,
+        });
+
+      if (error) {
+        toast.error("Failed to add to watchlist");
+        return;
+      }
+
+      toast.success("Added to watchlist");
+      setIsInWatchlist(true);
+    }
+  };
+
+  const handleRated = () => {
+    loadTitle();
+    checkUserRating();
+  };
 
   if (loading) {
     return (
@@ -55,13 +136,9 @@ export default function TitleDetail() {
 
   const directors = mockDirectors.filter((d) => title.directorIds.includes(d.id));
 
-  const handleAction = (action: string) => {
-    const user = localStorage.getItem("currentUser");
-    if (!user) {
-      toast.error("Please sign in to " + action);
-      return;
-    }
-    toast.success(`${action} successful!`);
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success("Link copied to clipboard");
   };
 
   return (
@@ -139,25 +216,38 @@ export default function TitleDetail() {
 
               {/* Actions */}
               <div className="flex flex-wrap gap-3">
-                <Button size="lg" className="gap-2" onClick={() => handleAction("play")}>
+                <Button size="lg" className="gap-2">
                   <Play className="h-5 w-5" />
                   Play Now
                 </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  onClick={toggleWatchlist} 
                   className="gap-2"
-                  onClick={() => handleAction("add to watchlist")}
                 >
-                  <Plus className="h-5 w-5" />
-                  Watchlist
+                  {isInWatchlist ? (
+                    <>
+                      <Check className="h-5 w-5" />
+                      In Watchlist
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-5 w-5" />
+                      Watchlist
+                    </>
+                  )}
                 </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  onClick={() => user ? setRatingDialogOpen(true) : navigate("/signin")}
                   className="gap-2"
-                  onClick={() => handleAction("share")}
                 >
+                  <Star className={`h-5 w-5 ${userRating ? "fill-primary text-primary" : ""}`} />
+                  {userRating ? `${userRating}/10` : "Rate"}
+                </Button>
+                <Button size="lg" variant="outline" onClick={handleShare} className="gap-2">
                   <Share2 className="h-5 w-5" />
                   Share
                 </Button>
@@ -315,7 +405,10 @@ export default function TitleDetail() {
             <h2 className="text-2xl font-semibold mb-4">Reviews & Ratings</h2>
             <div className="text-center py-8">
               <p className="text-muted-foreground">No reviews yet. Be the first to review!</p>
-              <Button className="mt-4" onClick={() => handleAction("write review")}>
+              <Button 
+                className="mt-4" 
+                onClick={() => user ? setRatingDialogOpen(true) : navigate("/signin")}
+              >
                 Write a Review
               </Button>
             </div>
@@ -344,6 +437,18 @@ export default function TitleDetail() {
           )}
         </Tabs>
       </section>
+
+      {/* Rating Dialog */}
+      {title && (
+        <RatingDialog
+          open={ratingDialogOpen}
+          onOpenChange={setRatingDialogOpen}
+          titleId={title.id}
+          titleName={title.title}
+          currentRating={userRating}
+          onRated={handleRated}
+        />
+      )}
     </div>
   );
 }

@@ -20,7 +20,7 @@ export const TitleCard = ({ title, showQuickActions = true, className = "" }: Ti
   // Safe getters for nullable values
   const rating = title.rating ??  title.rating_average ?? 0;
   const viewCount = title.viewCount ??  title.view_count ?? 0;
-  const posterUrl = title.posterUrl ?? title.poster_url ?? "/placeholder.svg";
+  const posterUrl = title.posterUrl ?? title.posterUrl ?? "/placeholder.svg";
   const genres = title.genres ?? [];
 
   const handleWatchlistToggle = (e: React.MouseEvent) => {

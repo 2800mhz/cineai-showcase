@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 import type { Title } from "@/types";
 
 interface TitleCardProps {
@@ -14,20 +15,22 @@ interface TitleCardProps {
 }
 
 export const TitleCard = ({ title, showQuickActions = true, className = "" }: TitleCardProps) => {
+  const { user } = useAuth();
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
 
   // Safe getters for nullable values
-  const rating = title.rating ??  title.rating ?? 0;
-  const viewCount = title.viewCount ??  title.viewCount ?? 0;
-  const posterUrl = title.posterUrl ?? title.posterUrl ?? "/placeholder.svg";
-  const genres = title.genres ?? [];
+  const rating = title.rating ??  title.rating_average ??  0;
+  const viewCount = title.viewCount ?? title.view_count ?? 0;
+  const posterUrl = title.posterUrl ?? title.poster_url ?? "/placeholder. svg";
+  const genres = title.genres ??  [];
+  const aicinedbId = title.aicinedbFilmId ?? title.aicinedb_film_id;
+  const shotCount = title.shotCount ?? title.shot_count ?? 0;
 
   const handleWatchlistToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    const user = localStorage.getItem("currentUser");
     if (! user) {
       toast.error("Please sign in to use watchlist");
       return;
@@ -39,7 +42,7 @@ export const TitleCard = ({ title, showQuickActions = true, className = "" }: Ti
 
   return (
     <Link
-      to={`/title/${title. id}`}
+      to={`/title/${title.id}`}
       className={`group/card relative block rounded-2xl overflow-hidden bg-card hover-lift ${className}`}
     >
       {/* Poster Image */}
@@ -70,20 +73,18 @@ export const TitleCard = ({ title, showQuickActions = true, className = "" }: Ti
           )}
           
           {/* AI Analyzed Badge */}
-          {(title.aicinedbFilmId || title.aicinedb_film_id) && (
+          {aicinedbId && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Badge className="bg-primary/90 backdrop-blur-sm gap-1 cursor-help">
                     <Sparkles className="h-3 w-3" />
-                    AI Analyzed
+                    AI
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Analyzed by AIcineDB</p>
-                  {(title.shotCount || title.shot_count) > 0 && (
-                    <p className="text-xs">{title.shotCount || title.shot_count} shots detected</p>
-                  )}
+                  {shotCount > 0 && <p className="text-xs">{shotCount} shots detected</p>}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -102,22 +103,13 @@ export const TitleCard = ({ title, showQuickActions = true, className = "" }: Ti
           />
         </button>
 
-        {/* Hover Overlay with Quick Actions */}
+        {/* Hover Overlay */}
         {showQuickActions && (
           <div className="absolute inset-0 bg-background/90 backdrop-blur-sm opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-            <div className="flex flex-col gap-2">
-              <Button
-                size="sm"
-                className="gap-2"
-                onClick={(e) => {
-                  e.preventDefault();
-                  toast. success("Opening player.. .");
-                }}
-              >
-                <Play className="h-4 w-4" />
-                Play
-              </Button>
-            </div>
+            <Button size="sm" className="gap-2">
+              <Play className="h-4 w-4" />
+              Play
+            </Button>
           </div>
         )}
       </div>
@@ -131,21 +123,26 @@ export const TitleCard = ({ title, showQuickActions = true, className = "" }: Ti
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span>{title.year}</span>
           <Badge variant="outline" className="text-xs">
-            {title. type}
+            {title.type}
           </Badge>
           {title.duration && <span>{title.duration}m</span>}
-          {title.totalEpisodes && <span>{title.totalEpisodes} eps</span>}
         </div>
 
         <div className="flex items-center gap-4 text-sm">
           <div className="flex items-center gap-1 text-primary">
             <Star className="h-4 w-4 fill-current" />
-            <span className="font-medium">{rating.toFixed(1)}</span>
+            <span className="font-medium">{rating. toFixed(1)}</span>
           </div>
           {viewCount > 0 && (
             <div className="flex items-center gap-1 text-muted-foreground">
               <Eye className="h-4 w-4" />
-              <span>{viewCount >= 1000000 ? `${(viewCount / 1000000).toFixed(1)}M` : viewCount >= 1000 ?  `${(viewCount / 1000). toFixed(0)}K` : viewCount}</span>
+              <span>
+                {viewCount >= 1000000 
+                  ? `${(viewCount / 1000000).toFixed(1)}M` 
+                  : viewCount >= 1000 
+                    ? `${(viewCount / 1000).toFixed(0)}K` 
+                    : viewCount}
+              </span>
             </div>
           )}
         </div>
@@ -153,7 +150,7 @@ export const TitleCard = ({ title, showQuickActions = true, className = "" }: Ti
         {/* Genres */}
         {genres.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {genres.slice(0, 3).map((genre) => (
+            {genres. slice(0, 3).map((genre) => (
               <span
                 key={genre}
                 className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground"

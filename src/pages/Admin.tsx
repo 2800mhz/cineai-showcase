@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Users, Film, AlertTriangle } from "lucide-react";
+import { Shield, Users, Film, AlertTriangle, Star } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Admin() {
@@ -20,43 +20,56 @@ export default function Admin() {
 
   useEffect(() => {
     if (! authLoading) {
+      if (! user) {
+        navigate("/signin");
+        return;
+      }
       checkAdminAccess();
     }
   }, [user, authLoading]);
 
   const checkAdminAccess = async () => {
-    if (!user) {
-      navigate("/signin");
-      return;
-    }
+    try {
+      // Veritabanından admin rolünü kontrol et
+      const { data, error } = await supabase. rpc('is_admin');
 
-    // Veritabanından admin rolünü kontrol et
-    const { data, error } = await supabase
-      . rpc('is_admin');
+      if (error) {
+        console. error("RPC error:", error);
+        // Fallback: user_roles tablosundan kontrol et
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user?. id)
+          .single();
+        
+        if (roleData?. role !== 'admin') {
+          toast.error("Access denied");
+          navigate("/");
+          return;
+        }
+      } else if (! data) {
+        toast.error("Access denied.  Admin privileges required.");
+        navigate("/");
+        return;
+      }
 
-    if (error || ! data) {
-      console.error("Access denied:", error);
-      toast.error("Access denied. Admin privileges required.");
+      setIsAdmin(true);
+      fetchStats();
+    } catch (err) {
+      console.error("Admin check failed:", err);
       navigate("/");
-      return;
     }
-
-    setIsAdmin(true);
-    fetchStats();
   };
 
   const fetchStats = async () => {
-    // Kullanıcı sayısı
     const { count: userCount } = await supabase
-      . from("profiles")
+      .from("profiles")
       .select("*", { count: "exact", head: true });
 
-    // Film sayısı
     const { count: titleCount } = await supabase
-      . from("titles")
+      .from("titles")
       .select("*", { count: "exact", head: true });
 
-    // Rating sayısı
     const { count: ratingCount } = await supabase
       .from("ratings")
       .select("*", { count: "exact", head: true });
@@ -74,7 +87,7 @@ export default function Admin() {
     return (
       <div className="container mx-auto px-4 py-20 text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-        <p className="mt-4 text-muted-foreground">Checking access...</p>
+        <p className="mt-4 text-muted-foreground">Verifying access...</p>
       </div>
     );
   }
@@ -84,7 +97,7 @@ export default function Admin() {
       <div className="container mx-auto px-4 py-20 text-center space-y-4">
         <AlertTriangle className="h-16 w-16 mx-auto text-destructive" />
         <h1 className="text-3xl font-bold">Access Denied</h1>
-        <p className="text-muted-foreground">You don't have permission to access this page.</p>
+        <p className="text-muted-foreground">You don't have permission to access this page. </p>
         <Button onClick={() => navigate("/")}>Go Home</Button>
       </div>
     );
@@ -110,6 +123,7 @@ export default function Admin() {
           <p className="text-muted-foreground">Total Titles</p>
         </div>
         <div className="glass rounded-xl p-6 text-center">
+          <Star className="h-8 w-8 mx-auto text-primary mb-2" />
           <p className="text-3xl font-bold">{stats.totalRatings}</p>
           <p className="text-muted-foreground">Total Ratings</p>
         </div>
@@ -124,17 +138,17 @@ export default function Admin() {
 
         <TabsContent value="users" className="glass rounded-xl p-6">
           <h2 className="text-2xl font-semibold mb-4">User Management</h2>
-          <p className="text-muted-foreground">Coming soon...</p>
+          <p className="text-muted-foreground">User management coming soon...</p>
         </TabsContent>
 
         <TabsContent value="content" className="glass rounded-xl p-6">
           <h2 className="text-2xl font-semibold mb-4">Content Management</h2>
-          <p className="text-muted-foreground">Coming soon... </p>
+          <p className="text-muted-foreground">Content management coming soon...</p>
         </TabsContent>
 
         <TabsContent value="reports" className="glass rounded-xl p-6">
           <h2 className="text-2xl font-semibold mb-4">Reports</h2>
-          <p className="text-muted-foreground">No reports</p>
+          <p className="text-muted-foreground">No reports to review</p>
         </TabsContent>
       </Tabs>
     </div>

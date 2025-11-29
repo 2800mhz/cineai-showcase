@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TitleCard } from "@/components/common/TitleCard";
 import { TitleCardSkeleton } from "@/components/common/TitleCardSkeleton";
-import { Calendar, Film } from "lucide-react";
+import { Calendar, Film, Settings } from "lucide-react";
 import { toast } from "sonner";
 
 interface Profile {
@@ -16,6 +16,7 @@ interface Profile {
   avatar_url: string | null;
   bio: string | null;
   join_date: string;
+  cover_photo_url?: string | null;
 }
 
 export default function Profile() {
@@ -27,7 +28,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (! authLoading && ! user) {
       navigate("/signin");
       return;
     }
@@ -44,7 +45,7 @@ export default function Profile() {
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("*")
+      . select("*")
       .eq("id", user.id)
       .single();
 
@@ -62,18 +63,18 @@ export default function Profile() {
 
     const { data, error } = await supabase
       .from("watchlist")
-      .select(`
+      . select(`
         title_id,
         titles (*)
       `)
-      .eq("user_id", user.id);
+      . eq("user_id", user.id);
 
     if (error) {
       console.error("Error fetching watchlist:", error);
       return;
     }
 
-    setWatchlist(data?.map(item => item.titles) || []);
+    setWatchlist(data?. map(item => item.titles) || []);
   };
 
   const fetchRatings = async () => {
@@ -87,11 +88,11 @@ export default function Profile() {
         title_id,
         titles (*)
       `)
-      .eq("user_id", user.id)
+      .eq("user_id", user. id)
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Error fetching ratings:", error);
+      console. error("Error fetching ratings:", error);
       setLoading(false);
       return;
     }
@@ -122,6 +123,14 @@ export default function Profile() {
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
+      {/* Cover Photo */}
+      {profile.cover_photo_url && (
+        <div 
+          className="h-48 rounded-2xl bg-cover bg-center"
+          style={{ backgroundImage: `url(${profile.cover_photo_url})` }}
+        />
+      )}
+
       {/* Profile Header */}
       <div className="glass rounded-2xl p-6 flex flex-col md:flex-row gap-6 items-start">
         <img
@@ -131,15 +140,28 @@ export default function Profile() {
         />
 
         <div className="flex-1 space-y-4">
-          <div>
-            <h1 className="text-4xl font-bold">{profile.username}</h1>
-            <p className="text-muted-foreground mt-2">{profile.email}</p>
-            {profile.bio && <p className="mt-2">{profile.bio}</p>}
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-4xl font-bold">{profile.username}</h1>
+              <p className="text-muted-foreground mt-2">{profile.email}</p>
+              {profile.bio && <p className="mt-2">{profile.bio}</p>}
+            </div>
+            
+            {/* Edit Profile Button */}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate("/profile/settings")}
+              className="gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Edit Profile
+            </Button>
           </div>
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
-            <span>Joined {new Date(profile.join_date).toLocaleDateString()}</span>
+            <span>Joined {new Date(profile.join_date). toLocaleDateString()}</span>
           </div>
 
           <div className="flex gap-6 text-sm">
@@ -163,7 +185,7 @@ export default function Profile() {
         </TabsList>
 
         <TabsContent value="watchlist" className="mt-6">
-          {watchlist.length > 0 ? (
+          {watchlist.length > 0 ?  (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
               {watchlist.map((title) => (
                 <TitleCard key={title.id} title={title} />
@@ -182,20 +204,20 @@ export default function Profile() {
         <TabsContent value="ratings" className="mt-6">
           {ratings.length > 0 ? (
             <div className="space-y-4">
-              {ratings.map((rating) => (
+              {ratings. map((rating) => (
                 <div key={rating.title_id} className="glass rounded-xl p-4 flex gap-4">
                   <img
-                    src={rating.titles.poster_url || "/placeholder.svg"}
-                    alt={rating.titles.title}
+                    src={rating. titles?. poster_url || "/placeholder.svg"}
+                    alt={rating.titles?.title || "Title"}
                     className="w-20 h-30 object-cover rounded-lg"
                   />
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold">{rating.titles.title}</h3>
+                    <h3 className="text-lg font-semibold">{rating.titles?.title || "Unknown"}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Rated on {new Date(rating.created_at).toLocaleDateString()}
+                      Rated on {new Date(rating. created_at).toLocaleDateString()}
                     </p>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-2xl font-bold text-primary">{rating.rating}/10</span>
+                      <span className="text-2xl font-bold text-primary">{rating. rating}/10</span>
                     </div>
                   </div>
                 </div>

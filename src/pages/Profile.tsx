@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TitleCard } from "@/components/common/TitleCard";
 import { TitleCardSkeleton } from "@/components/common/TitleCardSkeleton";
-import { Calendar, Film, Settings, Star } from "lucide-react";
+import { Calendar, Film, Settings, Star, Share2, Link, Check } from "lucide-react";
 import { toast } from "sonner";
 
 interface Profile {
@@ -27,6 +27,7 @@ export default function Profile() {
   const [watchlist, setWatchlist] = useState<any[]>([]);
   const [ratings, setRatings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (! authLoading && ! user) {
@@ -40,6 +41,13 @@ export default function Profile() {
       fetchRatings();
     }
   }, [user, authLoading, navigate]);
+
+  // URL'i kullanıcı adıyla güncelle
+  useEffect(() => {
+    if (profile?. username) {
+      window.history.replaceState(null, "", `/profile/${profile.username}`);
+    }
+  }, [profile?. username]);
 
   const fetchProfile = async () => {
     if (!user) return;
@@ -102,9 +110,32 @@ export default function Profile() {
     setLoading(false);
   };
 
+  // Profil linkini kopyala
+  const handleShare = async () => {
+    const profileUrl = `${window.location.origin}/profile/${profile?. username}`;
+    
+    try {
+      await navigator.clipboard.writeText(profileUrl);
+      setCopied(true);
+      toast.success("Profile link copied!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      // Fallback
+      const textArea = document.createElement("textarea");
+      textArea.value = profileUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body. removeChild(textArea);
+      setCopied(true);
+      toast. success("Profile link copied!");
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   // Ortalama rating hesapla
   const averageRating = ratings.length > 0 
-    ? (ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length). toFixed(1)
+    ? (ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length).toFixed(1)
     : null;
 
   if (authLoading || loading) {
@@ -132,7 +163,7 @@ export default function Profile() {
       {/* Cover Photo - Full Width */}
       <div 
         className="h-64 md:h-80 w-full bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 relative"
-        style={profile.cover_photo_url ? {
+        style={profile. cover_photo_url ? {
           backgroundImage: `url(${profile.cover_photo_url})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center'
@@ -148,7 +179,7 @@ export default function Profile() {
           <div className="glass rounded-2xl p-6 flex flex-col md:flex-row gap-6 items-start">
             {/* Avatar */}
             <img
-              src={profile. avatar_url || `https://api.dicebear.com/7. x/avataaars/svg?seed=${profile.username}`}
+              src={profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile. username}`}
               alt={profile.username}
               className="w-32 h-32 rounded-full object-cover border-4 border-background shadow-xl mx-auto md:mx-0 -mt-20 md:-mt-16"
             />
@@ -168,23 +199,42 @@ export default function Profile() {
                   {profile.bio && <p className="mt-3 max-w-xl">{profile.bio}</p>}
                 </div>
                 
-                {/* Edit Profile Button */}
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate("/profile/settings")}
-                  className="gap-2"
-                >
-                  <Settings className="h-4 w-4" />
-                  Edit Profile
-                </Button>
+                {/* Action Buttons */}
+                <div className="flex gap-2 justify-center md:justify-start">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleShare}
+                    className="gap-2"
+                  >
+                    {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+                    {copied ? "Copied!" : "Share"}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate("/profile/settings")}
+                    className="gap-2"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Edit
+                  </Button>
+                </div>
+              </div>
+
+              {/* Profile URL Preview */}
+              <div className="flex items-center gap-2 justify-center md:justify-start text-sm text-muted-foreground">
+                <Link className="h-4 w-4" />
+                <span className="font-mono bg-muted px-2 py-1 rounded">
+                  {window.location.origin}/profile/{profile.username}
+                </span>
               </div>
 
               {/* Stats */}
               <div className="flex items-center justify-center md:justify-start gap-6 pt-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4" />
-                  <span>Joined {new Date(profile.join_date).toLocaleDateString()}</span>
+                  <span>Joined {new Date(profile. join_date).toLocaleDateString()}</span>
                 </div>
               </div>
 
@@ -240,26 +290,26 @@ export default function Profile() {
               <div className="grid gap-4 md:grid-cols-2">
                 {ratings.map((rating) => (
                   <div 
-                    key={rating.title_id} 
+                    key={rating. title_id} 
                     className="glass rounded-xl p-4 flex gap-4 hover:bg-surface-elevated transition-colors cursor-pointer"
                     onClick={() => navigate(`/title/${rating.title_id}`)}
                   >
                     <img
                       src={rating.titles?. poster_url || "/placeholder. svg"}
-                      alt={rating.titles?. title || "Title"}
+                      alt={rating.titles?.title || "Title"}
                       className="w-20 h-28 object-cover rounded-lg"
                     />
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold">{rating.titles?.title || "Unknown"}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {rating.titles?.year} • {rating.titles?.type}
+                        {rating.titles?.year} • {rating. titles?.type}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Rated on {new Date(rating.created_at). toLocaleDateString()}
+                        Rated on {new Date(rating.created_at).toLocaleDateString()}
                       </p>
                       <div className="flex items-center gap-1 mt-2">
                         <Star className="h-5 w-5 fill-primary text-primary" />
-                        <span className="text-xl font-bold text-primary">{rating.rating}</span>
+                        <span className="text-xl font-bold text-primary">{rating. rating}</span>
                         <span className="text-muted-foreground">/10</span>
                       </div>
                     </div>

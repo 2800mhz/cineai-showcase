@@ -17,12 +17,18 @@ export const TitleCard = ({ title, showQuickActions = true, className = "" }: Ti
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
 
+  // Safe getters for nullable values
+  const rating = title.rating ??  title.rating_average ?? 0;
+  const viewCount = title.viewCount ??  title.view_count ?? 0;
+  const posterUrl = title.posterUrl ?? title.poster_url ?? "/placeholder.svg";
+  const genres = title.genres ?? [];
+
   const handleWatchlistToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
     const user = localStorage.getItem("currentUser");
-    if (!user) {
+    if (! user) {
       toast.error("Please sign in to use watchlist");
       return;
     }
@@ -33,22 +39,25 @@ export const TitleCard = ({ title, showQuickActions = true, className = "" }: Ti
 
   return (
     <Link
-      to={`/title/${title.id}`}
+      to={`/title/${title. id}`}
       className={`group/card relative block rounded-2xl overflow-hidden bg-card hover-lift ${className}`}
-
     >
       {/* Poster Image */}
       <div className="relative aspect-[2/3] overflow-hidden bg-muted">
-        {!imageLoaded && (
+        {! imageLoaded && (
           <div className="absolute inset-0 skeleton" />
         )}
         <img
-          src={title.posterUrl}
+          src={posterUrl}
           alt={title.title}
           className={`w-full h-full object-cover transition-opacity duration-300 ${
             imageLoaded ? "opacity-100" : "opacity-0"
           }`}
           onLoad={() => setImageLoaded(true)}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "/placeholder.svg";
+            setImageLoaded(true);
+          }}
           loading="lazy"
         />
 
@@ -61,7 +70,7 @@ export const TitleCard = ({ title, showQuickActions = true, className = "" }: Ti
           )}
           
           {/* AI Analyzed Badge */}
-          {title.aicinedbFilmId && (
+          {(title.aicinedbFilmId || title.aicinedb_film_id) && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -72,7 +81,9 @@ export const TitleCard = ({ title, showQuickActions = true, className = "" }: Ti
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Analyzed by AIcineDB</p>
-                  {title.shotCount > 0 && <p className="text-xs">{title.shotCount} shots detected</p>}
+                  {(title.shotCount || title.shot_count) > 0 && (
+                    <p className="text-xs">{title.shotCount || title.shot_count} shots detected</p>
+                  )}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -100,7 +111,7 @@ export const TitleCard = ({ title, showQuickActions = true, className = "" }: Ti
                 className="gap-2"
                 onClick={(e) => {
                   e.preventDefault();
-                  toast.success("Opening player...");
+                  toast. success("Opening player.. .");
                 }}
               >
                 <Play className="h-4 w-4" />
@@ -120,7 +131,7 @@ export const TitleCard = ({ title, showQuickActions = true, className = "" }: Ti
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span>{title.year}</span>
           <Badge variant="outline" className="text-xs">
-            {title.type}
+            {title. type}
           </Badge>
           {title.duration && <span>{title.duration}m</span>}
           {title.totalEpisodes && <span>{title.totalEpisodes} eps</span>}
@@ -129,25 +140,29 @@ export const TitleCard = ({ title, showQuickActions = true, className = "" }: Ti
         <div className="flex items-center gap-4 text-sm">
           <div className="flex items-center gap-1 text-primary">
             <Star className="h-4 w-4 fill-current" />
-            <span className="font-medium">{title.rating.toFixed(1)}</span>
+            <span className="font-medium">{rating.toFixed(1)}</span>
           </div>
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <Eye className="h-4 w-4" />
-            <span>{(title.viewCount / 1000000).toFixed(1)}M</span>
-          </div>
+          {viewCount > 0 && (
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Eye className="h-4 w-4" />
+              <span>{viewCount >= 1000000 ? `${(viewCount / 1000000).toFixed(1)}M` : viewCount >= 1000 ?  `${(viewCount / 1000). toFixed(0)}K` : viewCount}</span>
+            </div>
+          )}
         </div>
 
         {/* Genres */}
-        <div className="flex flex-wrap gap-1">
-          {title.genres.slice(0, 3).map((genre) => (
-            <span
-              key={genre}
-              className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground"
-            >
-              {genre}
-            </span>
-          ))}
-        </div>
+        {genres.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {genres.slice(0, 3).map((genre) => (
+              <span
+                key={genre}
+                className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground"
+              >
+                {genre}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </Link>
   );

@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { Film, Search, Bell, User, Menu, X, Upload, Settings, LogOut, Shield } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Film, Search, Bell, User, Menu, X, Upload, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NavbarProps {
   onAuthClick?: () => void;
@@ -19,16 +21,32 @@ interface NavbarProps {
 export const Navbar = ({ onAuthClick }: NavbarProps) => {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  
-  // Mock auth state - in real app, use context/zustand
-  const [user] = useState(() => {
-    const stored = localStorage.getItem("currentUser");
-    return stored ? JSON.parse(stored) : null;
-  });
+  const { user, signOut } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
 
-  const handleSignOut = () => {
-    localStorage.removeItem("currentUser");
-    window.location.reload();
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    } else {
+      setProfile(null);
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    setProfile(data);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
   };
 
   const navLinks = [
@@ -42,7 +60,7 @@ export const Navbar = ({ onAuthClick }: NavbarProps) => {
 
   const handleNavClick = (href: string, requiresAuth: boolean) => {
     if (requiresAuth && !user) {
-      onAuthClick?.();
+      navigate("/signin");
     } else {
       navigate(href);
       setMobileOpen(false);
@@ -94,19 +112,19 @@ export const Navbar = ({ onAuthClick }: NavbarProps) => {
           )}
 
           {/* User Menu or Sign In */}
-          {user ? (
+          {user && profile ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <img
-                    src={user.avatarUrl}
-                    alt={user.username}
+                    src={profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`}
+                    alt={profile.username}
                     className="h-8 w-8 rounded-full object-cover"
                   />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 glass-strong">
-                <DropdownMenuItem onClick={() => navigate(`/profile/${user.username}`)}>
+                <DropdownMenuItem onClick={() => navigate("/profile")}>
                   <User className="mr-2 h-4 w-4" />
                   Profile
                 </DropdownMenuItem>
@@ -122,15 +140,6 @@ export const Navbar = ({ onAuthClick }: NavbarProps) => {
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </DropdownMenuItem>
-                {user.role === "admin" && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => navigate("/admin")}>
-                      <Shield className="mr-2 h-4 w-4" />
-                      Admin Panel
-                    </DropdownMenuItem>
-                  </>
-                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />
@@ -139,7 +148,7 @@ export const Navbar = ({ onAuthClick }: NavbarProps) => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button onClick={onAuthClick} className="hidden sm:inline-flex">
+            <Button onClick={() => navigate("/signin")} className="hidden sm:inline-flex">
               Sign In
             </Button>
           )}
@@ -165,7 +174,7 @@ export const Navbar = ({ onAuthClick }: NavbarProps) => {
                 {!user && (
                   <>
                     <div className="border-t border-border my-4" />
-                    <Button onClick={onAuthClick} className="w-full">
+                    <Button onClick={() => navigate("/signin")} className="w-full">
                       Sign In
                     </Button>
                   </>

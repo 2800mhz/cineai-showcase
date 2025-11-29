@@ -1,21 +1,57 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { TitleCard } from "@/components/common/TitleCard";
+import { TitleCardSkeleton } from "@/components/common/TitleCardSkeleton";
 import { Button } from "@/components/ui/button";
-import { mockTitles } from "@/data/mockData";
 import { Film } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Watchlist() {
-  const user = localStorage.getItem("currentUser");
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const [watchlistTitles, setWatchlistTitles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock watchlist - in real app, get from user data
-  const watchlistTitles = mockTitles.slice(0, 6);
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/signin");
+      return;
+    }
 
-  if (!user) {
+    if (user) {
+      fetchWatchlist();
+    }
+  }, [user, authLoading, navigate]);
+
+  const fetchWatchlist = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("watchlist")
+      .select(`
+        title_id,
+        titles (*)
+      `)
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error("Error fetching watchlist:", error);
+      setLoading(false);
+      return;
+    }
+
+    setWatchlistTitles(data?.map(item => item.titles) || []);
+    setLoading(false);
+  };
+
+  if (authLoading || loading) {
     return (
-      <div className="container mx-auto px-4 py-20">
-        <div className="text-center space-y-4">
-          <Film className="h-16 w-16 mx-auto text-muted-foreground" />
-          <h1 className="text-3xl font-bold">Sign in to view your watchlist</h1>
-          <p className="text-muted-foreground">Keep track of titles you want to watch</p>
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+          {[...Array(12)].map((_, i) => (
+            <TitleCardSkeleton key={i} />
+          ))}
         </div>
       </div>
     );

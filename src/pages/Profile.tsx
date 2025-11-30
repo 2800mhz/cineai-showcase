@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { Calendar, Film, Star, Share2, Check, UserPlus } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { Calendar, Film, Star, Share2, Check, UserPlus, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TitleCard } from "@/components/common/TitleCard";
@@ -20,9 +20,10 @@ interface UserProfile {
   role: string | null;
 }
 
-export default function UserProfile() {
-  const { username } = useParams();
-  const { user: currentUser } = useAuth();
+export default function Profile() {
+  const { username: usernameParam } = useParams();
+  const { user: currentUser, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [watchlist, setWatchlist] = useState<any[]>([]);
   const [ratings, setRatings] = useState<any[]>([]);
@@ -32,50 +33,90 @@ export default function UserProfile() {
   const isOwnProfile = currentUser && profile && currentUser.id === profile.id;
 
   useEffect(() => {
-    if (username) {
-      fetchUserProfile();
+    // Auth yüklenene kadar bekle
+    if (authLoading) return;
+
+    // Eğer username parametresi varsa, o kullanıcıyı çek
+    if (usernameParam) {
+      fetchUserByUsername(usernameParam);
+    } 
+    // Eğer /profile ise ve giriş yapılmışsa, kendi profilini çek
+    else if (currentUser) {
+      fetchOwnProfile();
+    } 
+    // Giriş yapılmamışsa sign in'e yönlendir
+    else {
+      navigate("/signin");
     }
-  }, [username]);
+  }, [usernameParam, currentUser, authLoading]);
 
-  const fetchUserProfile = async () => {
+  const fetchOwnProfile = async () => {
+    if (!currentUser) return;
+    
     setLoading(true);
-
-    // Kullanıcıyı username ile bul
-    const { data: profileData, error: profileError } = await supabase
+    
+    const { data: profileData, error } = await supabase
       .from("profiles")
       .select("*")
-      . eq("username", username)
+      .eq("id", currentUser.id)
       .single();
 
-    if (profileError || !profileData) {
-      console.error("User not found:", profileError);
+    if (error || !profileData) {
+      console.error("Failed to load profile:", error);
+      toast.error("Failed to load profile");
       setLoading(false);
       return;
     }
 
     setProfile(profileData);
+    
+    // URL'i username ile güncelle
+    window.history.replaceState(null, "", `/profile/${profileData.username}`);
+    
+    await fetchUserData(profileData.id);
+  };
 
-    // Kullanıcının watchlist'ini çek
+  const fetchUserByUsername = async (username: string) => {
+    setLoading(true);
+
+    const { data: profileData, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("username", username)
+      . single();
+
+    if (error || !profileData) {
+      console.error("User not found:", error);
+      setLoading(false);
+      return;
+    }
+
+    setProfile(profileData);
+    await fetchUserData(profileData.id);
+  };
+
+  const fetchUserData = async (userId: string) => {
+    // Watchlist çek
     const { data: watchlistData } = await supabase
       .from("watchlist")
       .select(`
         title_id,
         titles (*)
       `)
-      . eq("user_id", profileData.id);
+      . eq("user_id", userId);
 
     setWatchlist(watchlistData?. map(item => item.titles). filter(Boolean) || []);
 
-    // Kullanıcının rating'lerini çek
+    // Ratings çek
     const { data: ratingsData } = await supabase
       .from("ratings")
-      .select(`
+      . select(`
         rating,
         created_at,
         title_id,
         titles (*)
       `)
-      .eq("user_id", profileData.id)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     setRatings(ratingsData || []);
@@ -83,7 +124,7 @@ export default function UserProfile() {
   };
 
   const handleShare = async () => {
-    const profileUrl = `${window.location.origin}/profile/${username}`;
+    const profileUrl = `${window.location.origin}/profile/${profile?. username}`;
     
     try {
       await navigator.clipboard.writeText(profileUrl);
@@ -103,12 +144,11 @@ export default function UserProfile() {
     toast.success(`Following ${profile?.username}`);
   };
 
-  // Ortalama rating hesapla
   const averageRating = ratings.length > 0 
-    ? (ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length).toFixed(1)
+    ? (ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length). toFixed(1)
     : null;
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
@@ -124,7 +164,9 @@ export default function UserProfile() {
     return (
       <div className="container mx-auto px-4 py-20 text-center space-y-4">
         <h1 className="text-3xl font-bold">User not found</h1>
-        <p className="text-muted-foreground">The user "{username}" doesn't exist. </p>
+        <p className="text-muted-foreground">
+          {usernameParam ? `The user "${usernameParam}" doesn't exist. ` : "Profile not found. "}
+        </p>
         <Button asChild>
           <Link to="/">Go Home</Link>
         </Button>
@@ -137,7 +179,7 @@ export default function UserProfile() {
       {/* Cover Photo */}
       <div 
         className="h-64 md:h-80 w-full bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 relative"
-        style={profile.cover_photo_url ? {
+        style={profile. cover_photo_url ? {
           backgroundImage: `url(${profile.cover_photo_url})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center'
@@ -152,7 +194,7 @@ export default function UserProfile() {
           <div className="glass rounded-2xl p-6 flex flex-col md:flex-row gap-6 items-start">
             {/* Avatar */}
             <img
-              src={profile. avatar_url || `https://api.dicebear.com/7. x/avataaars/svg?seed=${profile.username}`}
+              src={profile.avatar_url || `https://api.dicebear.com/7. x/avataaars/svg?seed=${profile. username}`}
               alt={profile.username}
               className="w-32 h-32 rounded-full object-cover border-4 border-background shadow-xl mx-auto md:mx-0 -mt-20 md:-mt-16"
             />
@@ -168,6 +210,9 @@ export default function UserProfile() {
                       </span>
                     )}
                   </div>
+                  {isOwnProfile && (
+                    <p className="text-muted-foreground mt-1">{profile.email}</p>
+                  )}
                   {profile.bio && <p className="mt-3 max-w-xl text-muted-foreground">{profile.bio}</p>}
                 </div>
                 
@@ -188,8 +233,12 @@ export default function UserProfile() {
                       variant="outline" 
                       size="sm"
                       asChild
+                      className="gap-2"
                     >
-                      <Link to="/profile/settings">Edit Profile</Link>
+                      <Link to="/profile/settings">
+                        <Settings className="h-4 w-4" />
+                        Edit Profile
+                      </Link>
                     </Button>
                   ) : (
                     <Button 
@@ -243,7 +292,7 @@ export default function UserProfile() {
           </TabsList>
 
           <TabsContent value="watchlist" className="mt-6">
-            {watchlist.length > 0 ? (
+            {watchlist.length > 0 ?  (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
                 {watchlist.map((title) => (
                   <TitleCard key={title.id} title={title} />
@@ -253,36 +302,43 @@ export default function UserProfile() {
               <div className="text-center py-20 space-y-4">
                 <Film className="h-16 w-16 mx-auto text-muted-foreground" />
                 <h2 className="text-2xl font-semibold">Watchlist is empty</h2>
-                <p className="text-muted-foreground">{profile.username} hasn't added any titles yet</p>
+                <p className="text-muted-foreground">
+                  {isOwnProfile ? "Start adding movies and series!" : `${profile.username} hasn't added any titles yet`}
+                </p>
+                {isOwnProfile && (
+                  <Button asChild>
+                    <Link to="/movies">Browse Movies</Link>
+                  </Button>
+                )}
               </div>
             )}
           </TabsContent>
 
           <TabsContent value="ratings" className="mt-6">
-            {ratings.length > 0 ? (
+            {ratings.length > 0 ?  (
               <div className="grid gap-4 md:grid-cols-2">
                 {ratings.map((rating) => (
                   <Link 
-                    key={rating.title_id} 
+                    key={rating. title_id} 
                     to={`/title/${rating.title_id}`}
                     className="glass rounded-xl p-4 flex gap-4 hover:bg-surface-elevated transition-colors"
                   >
                     <img
-                      src={rating.titles?. poster_url || "/placeholder.svg"}
+                      src={rating.titles?.poster_url || "/placeholder. svg"}
                       alt={rating.titles?.title || "Title"}
                       className="w-20 h-28 object-cover rounded-lg"
                     />
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold">{rating.titles?.title || "Unknown"}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {rating.titles?.year} • {rating.titles?.type}
+                        {rating.titles?.year} • {rating. titles?.type}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Rated on {new Date(rating.created_at). toLocaleDateString()}
+                        Rated on {new Date(rating.created_at).toLocaleDateString()}
                       </p>
                       <div className="flex items-center gap-1 mt-2">
                         <Star className="h-5 w-5 fill-primary text-primary" />
-                        <span className="text-xl font-bold text-primary">{rating.rating}</span>
+                        <span className="text-xl font-bold text-primary">{rating. rating}</span>
                         <span className="text-muted-foreground">/10</span>
                       </div>
                     </div>
@@ -293,7 +349,14 @@ export default function UserProfile() {
               <div className="text-center py-20 space-y-4">
                 <Star className="h-16 w-16 mx-auto text-muted-foreground" />
                 <h2 className="text-2xl font-semibold">No ratings yet</h2>
-                <p className="text-muted-foreground">{profile.username} hasn't rated any titles yet</p>
+                <p className="text-muted-foreground">
+                  {isOwnProfile ? "Start rating films you've watched!" : `${profile.username} hasn't rated any titles yet`}
+                </p>
+                {isOwnProfile && (
+                  <Button asChild>
+                    <Link to="/movies">Browse Movies</Link>
+                  </Button>
+                )}
               </div>
             )}
           </TabsContent>

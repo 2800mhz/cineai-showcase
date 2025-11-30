@@ -76,8 +76,9 @@ export const Navbar = ({ onAuthClick }: NavbarProps) => {
           <img 
             src={logo} 
             alt="AI CineDB" 
-            className="h-10 w-auto"
+            className="h-12 w-auto"
           />
+          <span className="text-xl font-bold text-primary hidden sm:inline">AI CineDB</span>
         </Link>
 
         {/* Desktop Navigation */}

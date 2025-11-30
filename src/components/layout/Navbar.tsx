@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Film, Search, Bell, User, Menu, X, Upload, Settings, LogOut } from "lucide-react";
+import { Search, Bell, User, Menu, X, Upload, Settings, LogOut, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,6 +13,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import logo from "@/assets/logo2.png";
 
 interface NavbarProps {
   onAuthClick?: () => void;
@@ -33,11 +34,11 @@ export const Navbar = ({ onAuthClick }: NavbarProps) => {
   }, [user]);
 
   const fetchProfile = async () => {
-    if (!user) return;
+    if (! user) return;
 
     const { data } = await supabase
       .from("profiles")
-      .select("*")
+      . select("*")
       .eq("id", user.id)
       .single();
 
@@ -71,9 +72,12 @@ export const Navbar = ({ onAuthClick }: NavbarProps) => {
     <header className="sticky top-0 z-50 w-full glass-strong border-b border-border">
       <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 text-primary hover:opacity-80 transition-opacity">
-          <Film className="h-7 w-7" />
-          <span className="text-xl font-bold hidden sm:inline">AI CineDB</span>
+        <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
+          <img 
+            src={logo} 
+            alt="AI CineDB" 
+            className="h-10 w-auto"
+          />
         </Link>
 
         {/* Desktop Navigation */}
@@ -81,7 +85,7 @@ export const Navbar = ({ onAuthClick }: NavbarProps) => {
           {navLinks.map((link) => (
             <button
               key={link.href}
-              onClick={() => handleNavClick(link.href, link.auth || false)}
+              onClick={() => handleNavClick(link.href, link. auth || false)}
               className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
             >
               {link.label}
@@ -117,8 +121,8 @@ export const Navbar = ({ onAuthClick }: NavbarProps) => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <img
-                    src={profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`}
-                    alt={profile.username}
+                    src={profile.avatar_url || `https://api. dicebear.com/7.x/avataaars/svg?seed=${profile. username}`}
+                    alt={profile. username}
                     className="h-8 w-8 rounded-full object-cover"
                   />
                 </Button>
@@ -164,11 +168,11 @@ export const Navbar = ({ onAuthClick }: NavbarProps) => {
               <div className="flex flex-col gap-4 mt-8">
                 {navLinks.map((link) => (
                   <button
-                    key={link.href}
+                    key={link. href}
                     onClick={() => handleNavClick(link.href, link.auth || false)}
                     className="text-left text-lg font-medium text-foreground/80 hover:text-primary transition-colors py-2"
                   >
-                    {link.label}
+                    {link. label}
                   </button>
                 ))}
                 {!user && (

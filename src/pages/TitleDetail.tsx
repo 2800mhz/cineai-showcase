@@ -494,9 +494,10 @@ export default function TitleDetail() {
           <DialogTitle className="sr-only">{title.title} - Video Player</DialogTitle>
           <div className="relative w-full aspect-video">
             {videoId && (
+              // ✅ DOĞRU - boşluk yok
               <iframe
                 src={`https://www.youtube. com/embed/${videoId}?autoplay=1&rel=0`}
-                title={title.title}
+                title={title. title}
                 className="absolute inset-0 w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen

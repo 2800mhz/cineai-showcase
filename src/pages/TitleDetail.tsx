@@ -1,9 +1,10 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Play, Plus, Share2, Star, Eye, Calendar, Clock, Film, Users, Layers, Sparkles, Check } from "lucide-react";
+import { Play, Plus, Share2, Star, Eye, Calendar, Clock, Film, Users, Layers, Sparkles, Check, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { mockDirectors } from "@/data/mockData";
 import { fetchTitleById } from "@/services/filmService";
 import { RatingDialog } from "@/components/features/RatingDialog";
@@ -22,6 +23,7 @@ export default function TitleDetail() {
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [userRating, setUserRating] = useState<number | undefined>(undefined);
   const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
+  const [videoPlayerOpen, setVideoPlayerOpen] = useState(false);
 
   useEffect(() => {
     loadTitle();
@@ -44,12 +46,12 @@ export default function TitleDetail() {
 
     const { data } = await supabase
       .from("watchlist")
-      .select("id")
+      . select("id")
       .eq("user_id", user.id)
       .eq("title_id", id)
       .maybeSingle();
 
-    setIsInWatchlist(!!data);
+    setIsInWatchlist(!! data);
   };
 
   const checkUserRating = async () => {
@@ -60,7 +62,7 @@ export default function TitleDetail() {
       .select("rating")
       .eq("user_id", user.id)
       .eq("title_id", id)
-      .maybeSingle();
+      . maybeSingle();
 
     setUserRating(data?.rating);
   };
@@ -75,11 +77,11 @@ export default function TitleDetail() {
       const { error } = await supabase
         .from("watchlist")
         .delete()
-        .eq("user_id", user.id)
+        .eq("user_id", user. id)
         .eq("title_id", id);
 
       if (error) {
-        toast.error("Failed to remove from watchlist");
+        toast. error("Failed to remove from watchlist");
         return;
       }
 
@@ -108,6 +110,37 @@ export default function TitleDetail() {
     checkUserRating();
   };
 
+  // YouTube URL'den video ID'sini çıkar
+  const getYouTubeVideoId = (url: string | undefined): string | null => {
+    if (!url) return null;
+    
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\. be\/|youtube\. com\/embed\/)([^&\n? #]+)/,
+      /^([a-zA-Z0-9_-]{11})$/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  };
+
+  const handlePlayNow = () => {
+    const videoId = getYouTubeVideoId(title?.youtubeUrl);
+    
+    if (videoId) {
+      setVideoPlayerOpen(true);
+    } else if (title?. youtubeUrl) {
+      // Direkt URL varsa yeni sekmede aç
+      window. open(title.youtubeUrl, '_blank');
+    } else {
+      toast.error("Video is not available yet");
+    }
+  };
+
+  const videoId = title ?  getYouTubeVideoId(title.youtubeUrl) : null;
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-12">
@@ -134,7 +167,7 @@ export default function TitleDetail() {
     );
   }
 
-  const directors = mockDirectors.filter((d) => title.directorIds.includes(d.id));
+  const directors = mockDirectors. filter((d) => title.directorIds.includes(d. id));
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -149,7 +182,7 @@ export default function TitleDetail() {
         <div className="absolute inset-0">
           <div
             className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${title.posterUrl})` }}
+            style={{ backgroundImage: `url(${title. posterUrl})` }}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
@@ -178,7 +211,7 @@ export default function TitleDetail() {
               <div className="flex flex-wrap items-center gap-4 text-sm">
                 <div className="flex items-center gap-1">
                   <Star className="h-5 w-5 fill-primary text-primary" />
-                  <span className="text-2xl font-bold">{title.rating.toFixed(1)}</span>
+                  <span className="text-2xl font-bold">{title.rating. toFixed(1)}</span>
                   <span className="text-muted-foreground">
                     ({(title.ratingCount / 1000).toFixed(0)}K ratings)
                   </span>
@@ -216,7 +249,11 @@ export default function TitleDetail() {
 
               {/* Actions */}
               <div className="flex flex-wrap gap-3">
-                <Button size="lg" className="gap-2">
+                <Button 
+                  size="lg" 
+                  className="gap-2"
+                  onClick={handlePlayNow}
+                >
                   <Play className="h-5 w-5" />
                   Play Now
                 </Button>
@@ -244,13 +281,26 @@ export default function TitleDetail() {
                   onClick={() => user ? setRatingDialogOpen(true) : navigate("/signin")}
                   className="gap-2"
                 >
-                  <Star className={`h-5 w-5 ${userRating ? "fill-primary text-primary" : ""}`} />
+                  <Star className={`h-5 w-5 ${userRating ?  "fill-primary text-primary" : ""}`} />
                   {userRating ? `${userRating}/10` : "Rate"}
                 </Button>
                 <Button size="lg" variant="outline" onClick={handleShare} className="gap-2">
                   <Share2 className="h-5 w-5" />
                   Share
                 </Button>
+                
+                {/* YouTube'da aç butonu */}
+                {title.youtubeUrl && (
+                  <Button 
+                    size="lg" 
+                    variant="ghost" 
+                    onClick={() => window.open(title. youtubeUrl, '_blank')}
+                    className="gap-2"
+                  >
+                    <ExternalLink className="h-5 w-5" />
+                    YouTube
+                  </Button>
+                )}
               </div>
 
               {/* Directors */}
@@ -263,12 +313,12 @@ export default function TitleDetail() {
                     {directors.map((director) => (
                       <Link
                         key={director.id}
-                        to={`/director/${director.id}`}
+                        to={`/director/${director. id}`}
                         className="flex items-center gap-2 hover:text-primary transition-colors"
                       >
                         <img
                           src={director.avatarUrl}
-                          alt={director.name}
+                          alt={director. name}
                           className="w-10 h-10 rounded-full object-cover"
                         />
                         <span className="font-medium">{director.name}</span>
@@ -286,11 +336,11 @@ export default function TitleDetail() {
                 <div className="space-y-1 text-sm">
                   <p>
                     <span className="text-muted-foreground">Model:</span>{" "}
-                    <span className="font-medium">{title.aiModel}</span>
+                    <span className="font-medium">{title. aiModel}</span>
                   </p>
                   <p>
                     <span className="text-muted-foreground">Production:</span>{" "}
-                    <span className="font-medium">{title.productionCompany}</span>
+                    <span className="font-medium">{title. productionCompany}</span>
                   </p>
                   <p className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -317,14 +367,14 @@ export default function TitleDetail() {
                         <span className="text-xs text-muted-foreground">Shots</span>
                       </div>
                     )}
-                    {title.sceneCount > 0 && (
+                    {title. sceneCount > 0 && (
                       <div className="flex flex-col items-center p-3 rounded-lg bg-background/50">
                         <Layers className="h-5 w-5 text-muted-foreground mb-1" />
-                        <span className="text-xl font-bold">{title.sceneCount}</span>
+                        <span className="text-xl font-bold">{title. sceneCount}</span>
                         <span className="text-xs text-muted-foreground">Scenes</span>
                       </div>
                     )}
-                    {title.characterCount > 0 && (
+                    {title. characterCount > 0 && (
                       <div className="flex flex-col items-center p-3 rounded-lg bg-background/50">
                         <Users className="h-5 w-5 text-muted-foreground mb-1" />
                         <span className="text-xl font-bold">{title.characterCount}</span>
@@ -340,7 +390,7 @@ export default function TitleDetail() {
                       <div className="flex flex-wrap gap-1">
                         {title.styleFingerprint.split(',').slice(0, 6).map((tag, i) => (
                           <Badge key={i} variant="outline" className="text-xs">
-                            {tag.trim()}
+                            {tag. trim()}
                           </Badge>
                         ))}
                       </div>
@@ -381,7 +431,7 @@ export default function TitleDetail() {
                 </div>
               )}
 
-              {title.tags.length > 0 && (
+              {title.tags. length > 0 && (
                 <div className="space-y-2 pt-4">
                   <h3 className="font-semibold">Tags</h3>
                   <div className="flex flex-wrap gap-2">
@@ -404,7 +454,7 @@ export default function TitleDetail() {
           <TabsContent value="reviews" className="glass rounded-xl p-6">
             <h2 className="text-2xl font-semibold mb-4">Reviews & Ratings</h2>
             <div className="text-center py-8">
-              <p className="text-muted-foreground">No reviews yet. Be the first to review!</p>
+              <p className="text-muted-foreground">No reviews yet. Be the first to review! </p>
               <Button 
                 className="mt-4" 
                 onClick={() => user ? setRatingDialogOpen(true) : navigate("/signin")}
@@ -420,7 +470,7 @@ export default function TitleDetail() {
               <div className="space-y-4">
                 <div>
                   <h3 className="font-semibold mb-2">Model Used</h3>
-                  <p className="text-muted-foreground">{title.aiModel}</p>
+                  <p className="text-muted-foreground">{title. aiModel}</p>
                 </div>
                 <div>
                   <h3 className="font-semibold mb-2">Generation Prompt</h3>
@@ -437,6 +487,24 @@ export default function TitleDetail() {
           )}
         </Tabs>
       </section>
+
+      {/* Video Player Dialog */}
+      <Dialog open={videoPlayerOpen} onOpenChange={setVideoPlayerOpen}>
+        <DialogContent className="max-w-5xl p-0 bg-black border-none">
+          <DialogTitle className="sr-only">{title.title} - Video Player</DialogTitle>
+          <div className="relative w-full aspect-video">
+            {videoId && (
+              <iframe
+                src={`https://www.youtube. com/embed/${videoId}?autoplay=1&rel=0`}
+                title={title.title}
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Rating Dialog */}
       {title && (
